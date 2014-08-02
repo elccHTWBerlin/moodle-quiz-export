@@ -71,7 +71,10 @@ class quiz_export_engine {
 
 		$input_files = implode(' ', $html_files);
 
-		$cmd = quiz_export_config::WKHTMLTOPDF ." ". $input_files ." ". $tmp_pdf_file ." 2> ". $tmp_err_file;
+		$options = '';
+		$options = $options.' --cookie MoodleSession '. $_COOKIE['MoodleSession'];
+		$cmd = quiz_export_config::WKHTMLTOPDF .$options .' '. $input_files .' '. $tmp_pdf_file .' 2> '. $tmp_err_file;
+		session_write_close();
 		$shell_exec_stdout = shell_exec($cmd);
 
 		// debug
@@ -164,7 +167,6 @@ class quiz_export_engine {
 
 	protected function get_review_html($attemptobj, $slots, $page, $showall, $lastpage) {
 		$html = $this->render($attemptobj, $slots, $page, $showall, $lastpage);
-		$html = $this->include_pluginfiles($html);
 		return $html;
 	}
 
@@ -347,89 +349,5 @@ class quiz_export_engine {
 		unset($classname);
 
 		$PAGE->set_context(null);
-	}
-
-	protected function include_pluginfiles($html) {
-		$len = strlen($html);
-		$pluginfile_urls = array();
-		$e = 0;
-		while ($s = strpos($html, 'pluginfile.php/', $e)) {
-			$s = strrpos($html, '"', -$len+$s) + 1;
-			$e = strpos($html, '"', $s);
-			$pluginfile_url = substr($html, $s, $e-$s);
-			$pluginfile_urls[] = $pluginfile_url;
-		}
-
-		foreach ($pluginfile_urls as $url) {
-			$data_uri = pluginfile_processor::get_data_uri($url);
-			$html = str_replace($url, $data_uri, $html);
-		}
-		return $html;
-	}
-}
-
-class pluginfile_processor {
-	public static function get_data_uri($fileurl) {
-		global $CFG, $DB;
-		
-		$fileinfo = pluginfile_processor::parse_url($fileurl);
-		// ToDo: escape special chars
-		$dbfileinfo = $DB->get_record_sql("
-			select *
-			from {files}
-			where contextid='".$fileinfo['contextid']."'
-			and component='".$fileinfo['component']."'
-			and filearea='".$fileinfo['filearea']."'
-			and filename='".$fileinfo['filename']."'
-			and itemid='".$fileinfo['itemid']."'
-			");
-
-		$contenthash = $dbfileinfo->contenthash;
-		$filedir = $CFG->dataroot.'/filedir';
-
-		$l1 = $contenthash[0].$contenthash[1];
-		$l2 = $contenthash[2].$contenthash[3];
-
-		$filepath = "$filedir/$l1/$l2/$contenthash";
-
-		$filecontent = file_get_contents($filepath);
-		$base64 = base64_encode($filecontent);
-
-		$mime = $dbfileinfo->mimetype;
-		$data_uri = 'data:' . $mime . ';base64,' . $base64;
-
-		return $data_uri;
-	}
-
-	public static function parse_url($fileurl) {
-		$fileinfo = array();
-
-		$fileurl = urldecode($fileurl);
-
-		$s = strpos($fileurl, 'pluginfile.php/') + 15;
-		$e = strpos($fileurl, '/', $s);
-
-		$fileinfo['contextid'] = substr($fileurl, $s, $e-$s);
-
-		$s = $e+1;
-		$e = strpos($fileurl, '/', $s);
-
-		$fileinfo['component'] = substr($fileurl, $s, $e-$s);
-
-		$s = $e+1;
-		$e = strpos($fileurl, '/', $s);
-
-		$fileinfo['filearea'] = substr($fileurl, $s, $e-$s);
-
-		$s = strrpos($fileurl, '/')+1;
-
-		$fileinfo['filename'] = substr($fileurl, $s);
-
-		$s = strrpos($fileurl, '/', $s - strlen($fileurl)-2) + 1;
-		$e = strpos($fileurl, '/', $s);
-
-		$fileinfo['itemid'] = substr($fileurl, $s, $e-$s);
-
-		return $fileinfo;
 	}
 }
