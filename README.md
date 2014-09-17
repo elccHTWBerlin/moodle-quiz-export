@@ -3,7 +3,14 @@ moodle-quiz-export
 
 This is a quiz report plugin for [moodle](https://moodle.org/) to export quiz attempts as pdf. Single quiz attempt exports are possible as well as bulk exports as zip files.
 
-The plugin is currently in beta status and not well tested at the moment.
+# Moodle Versions
+Due to some bigger changes since moodle verion 2.6 it's required to use different plugin versions depending on the moodle version you use.
+
+## Moodle < 2.5
+Use version 1.x of this plugin.
+
+## Moodle >= 2.6
+Use version 2.x of this plugin.
 
 # Dependencies
 * wkhtmltopdf (http://wkhtmltopdf.org/) must installed on the system and configured in config.php
@@ -11,6 +18,7 @@ The plugin is currently in beta status and not well tested at the moment.
 # Installation:
 * switch to /path/to/moodle/mod/quiz/report/
 * execute git clone https://github.com/elcc/moodle-quiz-export.git export
+* depending on your moodle version checkout either branch quiz-export_v1 or quiz-export_v2: git checkout quiz-export_v1
 * adjust settings in export/config.php
 * on moodle page go to "Site Administration" -> "Notifications" and follow the instructions
 
