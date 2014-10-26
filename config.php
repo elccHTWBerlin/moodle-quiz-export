@@ -42,4 +42,10 @@ class quiz_export_config {
 	 * For more information about pagemode see export.php.
 	 */
 	const PAGEMODE_DEFAULT = quiz_export_engine::PAGEMODE_TRUEPAGE;
+
+	/**
+	 * The gs command with optional options.
+	 * This is used to concat PDFs.
+	 */
+	const GS = "gs";
 }

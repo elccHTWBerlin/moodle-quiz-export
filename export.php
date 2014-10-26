@@ -61,36 +61,47 @@ class quiz_export_engine {
 
 		$tmp_dir = sys_get_temp_dir();
 		$tmp_file = tempnam($tmp_dir, "mdl-qexp_");
-		$tmp_pdf_file = $tmp_file .".pdf";
-		rename($tmp_file, $tmp_pdf_file);
-		chmod($tmp_pdf_file, 0644);
-		$tmp_file = tempnam($tmp_dir, "mdl-qexp_");
 		$tmp_err_file = $tmp_file .".txt";
 		rename($tmp_file, $tmp_err_file);
 		chmod($tmp_err_file, 0644);
 
-		$input_files = implode(' ', $html_files);
-
 		$options = '';
 		$options = $options.' --cookie MoodleSession '. $_COOKIE['MoodleSession'];
-		$cmd = quiz_export_config::WKHTMLTOPDF .$options .' '. $input_files .' '. $tmp_pdf_file .' 2> '. $tmp_err_file;
 		session_write_close();
-		$shell_exec_stdout = shell_exec($cmd);
-
-		// debug
-		// echo "std out:<br>";
-		// echo $shell_exec_stdout;
-		// echo "<br>";
-		// echo "std err:<br>";
-		// readfile($tmp_err_file);
-
-		// cleanup
-		unlink($tmp_err_file);
-		foreach ($html_files as $file) {
-			unlink($file);
+		$tmp_pdf_files = array();
+		foreach ($html_files as $html_file) {
+			$tmp_file = tempnam($tmp_dir, "mdl-qexp_");
+			$tmp_pdf_file = $tmp_file .".pdf";
+			rename($tmp_file, $tmp_pdf_file);
+			chmod($tmp_pdf_file, 0644);
+			$cmd = quiz_export_config::WKHTMLTOPDF .$options .' '. $html_file .' '. $tmp_pdf_file .' 2> '. $tmp_err_file;
+			$shell_exec_stdout = shell_exec($cmd);
+			$tmp_pdf_files[] = $tmp_pdf_file;
+			unlink($html_file);
 		}
 
-		return $tmp_pdf_file;
+		if (sizeof($tmp_pdf_files)!=1) {
+			$tmp_file = tempnam($tmp_dir, "mdl-qexp_");
+			$pdf_output = $tmp_file .".pdf";
+			rename($tmp_file, $pdf_output);
+			chmod($pdf_output, 0644);
+			$input_files = implode(' ', $tmp_pdf_files);
+			$options = ' -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile='.$pdf_output;
+			$cmd = quiz_export_config::GS .$options .' ' .$input_files .' 2> '. $tmp_err_file;
+			$shell_exec_stdout = shell_exec($cmd);
+			echo $cmd;
+
+			foreach ($tmp_pdf_files as $tmp_pdf_file) {
+				unlink($tmp_pdf_file);
+			}
+		} else {
+			$pdf_output = $tmp_pdf_files[0];
+		}
+
+		// readfile($tmp_err_file);
+		unlink($tmp_err_file);
+		
+		return $pdf_output;
 	}
 	
 	protected function question_per_page($attemptobj) {
